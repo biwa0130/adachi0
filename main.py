@@ -23,9 +23,20 @@ GROUP_ID = os.environ.get('LINE_GROUP_ID')
 configuration = Configuration(access_token=CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(CHANNEL_SECRET)
 
-# --- ぐちゃぐちゃマルコフ連鎖 ＋ 2回に1回長文 ＋ 語尾アレンジ関数 ---
+# --- ズモ仕様を組み込んだテキスト生成関数 ---
 def generate_text():
     try:
+        # ★ 15%の確率で伝説の「ズモ」または「ズモモエラー」を強制発現させる
+        if random.random() < 0.15:
+            zumo_variants = [
+                "ズ'EEEEEEEEEE(º `)EEEEEEEEEEE",
+                "ズモモエラー：生殖器の異常を検知しました",
+                "ズモモエラー：からあげの数位が不正です",
+                "ズ'EEEEEEEEEE(º `)EEEEEEEEEEE 🫠",
+                "ズモモエラーが発生しました💀"
+            ]
+            return random.choice(zumo_variants)
+
         if os.path.exists('tweets_data.txt'):
             with open('tweets_data.txt', 'r', encoding='utf-8') as f:
                 lines = [line.strip() for line in f.readlines() if line.strip()]
@@ -57,7 +68,7 @@ def generate_text():
                     current_w = random.choice(list(model.keys()))
                     generated_words = [current_w]
                     
-                    # ★ 2回に1回の確率（50%）で長めにする
+                    # 2回に1回の確率（50%）で長めにする
                     is_long = random.random() < 0.5
                     length = random.randint(12, 28) if is_long else random.randint(3, 10)
                     
@@ -73,15 +84,15 @@ def generate_text():
                     
                     result_text = "".join(generated_words)
                     
-                    # ★ 文の最後に「〜の足立」などの独特な口調をランダムで付与（30%の確率）
+                    # 文の最後に独自の口調をランダムで付与（30%の確率）
                     if random.random() < 0.3:
                         endings = ["の足立", "なんだが", "なんだよな", "しれない", "ねんな", "…な？"]
                         result_text += random.choice(endings)
                     
-                    # わけわからん絵文字の候補
+                    # 絵文字の候補
                     emojis = ["🫠", "✨", "💀", "👍", "🤔", "🥺", "草", "🙏", "🌿", "💡"]
                     
-                    # 10% (0.1) の確率で絵文字を先頭か文末にぶっこむ
+                    # 10%の確率で絵文字を先頭か文末にぶっこむ
                     if random.random() < 0.1:
                         chosen_emoji = random.choice(emojis)
                         if random.random() < 0.5:
@@ -90,16 +101,16 @@ def generate_text():
                             result_text = result_text + " " + chosen_emoji
                     
                     if len(result_text) > 1:
-                        print(f"生成成功 (長文フラグ: {is_long}): {result_text}")
+                        print(f"生成成功: {result_text}")
                         return result_text
 
                 return random.choice(lines)
                 
-        return "トイレットペーパー切れた🫠"
+        return "ズ'EEEEEEEEEE(º `)EEEEEEEEEEE"
         
     except Exception as e:
         print(f"Generation Error: {e}")
-        return "悲報：おえ〜💀"
+        return "ズモモエラー：おえ〜💀"
 
 # --- LINE Webhook 受信ルート ---
 @app.route("/")
