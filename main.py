@@ -23,7 +23,7 @@ GROUP_ID = os.environ.get('LINE_GROUP_ID')
 configuration = Configuration(access_token=CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(CHANNEL_SECRET)
 
-# --- ぐちゃぐちゃマルコフ連鎖 ＋ 絵文字トッピング関数 ---
+# --- ぐちゃぐちゃマルコフ連鎖 ＋ 10%絵文字トッピング関数 ---
 def generate_text():
     try:
         if os.path.exists('tweets_data.txt'):
@@ -34,7 +34,6 @@ def generate_text():
                 tagger = MeCab.Tagger(unidic_lite.DICDIR)
                 model = {}
                 
-                # 全文をバラして2-gram（より細かく、ぐちゃぐちゃに繋げる）の辞書を作る
                 for line in lines:
                     parsed = tagger.parse(line)
                     words = []
@@ -55,18 +54,15 @@ def generate_text():
                         model[w1].append(w2)
                 
                 if model:
-                    # スタートの単語をランダムに選ぶ
                     current_w = random.choice(list(model.keys()))
                     generated_words = [current_w]
                     
-                    # あえて短かったり長かったり、ぐちゃぐちゃな長さに設定 (3〜18単語)
                     length = random.randint(3, 18)
                     for _ in range(length):
                         if current_w in model:
                             next_w = random.choice(model[current_w])
                             generated_words.append(next_w)
                             current_w = next_w
-                            # 途中でランダムにスパッと切れる確率を上げる（文として成立しなくてOK）
                             if random.random() < 0.15:
                                 break
                         else:
@@ -74,11 +70,11 @@ def generate_text():
                     
                     result_text = "".join(generated_words)
                     
-                    # 適度なわけわからん絵文字の候補
+                    # わけわからん絵文字の候補
                     emojis = ["🫠", "✨", "💀", "👍", "🤔", "🥺", "草", "🙏", "🌿", "💡"]
                     
-                    # 30%の確率で文末や文中に絵文字をぶっこむ
-                    if random.random() < 0.7:
+                    # 10% (0.1) の確率で絵文字をぶっこむ
+                    if random.random() < 0.1:
                         chosen_emoji = random.choice(emojis)
                         if random.random() < 0.5:
                             result_text += chosen_emoji
@@ -118,7 +114,12 @@ def callback():
 def handle_message(event):
     user_msg = event.message.text
     
-    keywords = ["足立レイ", "レイ", "からあげ", "ズモ", "ずも", "生殖器"]
+    # 反応させるキーワードリスト（固有ワード ＋ 足立レイのカラーコード）
+    keywords = [
+        "足立レイ", "レイ", "からあげ", "ズモ", "ずも", "生殖器",
+        "#FF6600", "#FF7F00", "#FFFFFF", "#333333", "#4D4D4D", "#FFCC00", "#FF9900",
+        "FF6600", "FF7F00", "FFFFFF", "333333", "4D4D4D", "FFCC00", "FF9900"
+    ]
     
     if any(keyword in user_msg for keyword in keywords):
         reply_text = generate_text()
