@@ -107,7 +107,7 @@ def set_random_schedule():
 
 def run_schedule():
     set_random_schedule()
-    while Time.sleep(60):
+    while True:
         schedule.run_pending()
         time.sleep(60)
 
