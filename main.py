@@ -23,7 +23,7 @@ GROUP_ID = os.environ.get('LINE_GROUP_ID')
 configuration = Configuration(access_token=CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(CHANNEL_SECRET)
 
-# --- ぐちゃぐちゃマルコフ連鎖 ＋ 10%絵文字トッピング関数 ---
+# --- ぐちゃぐちゃマルコフ連鎖 ＋ 2回に1回長文 ＋ 語尾アレンジ関数 ---
 def generate_text():
     try:
         if os.path.exists('tweets_data.txt'):
@@ -57,33 +57,40 @@ def generate_text():
                     current_w = random.choice(list(model.keys()))
                     generated_words = [current_w]
                     
-                    length = random.randint(3, 18)
+                    # ★ 2回に1回の確率（50%）で長めにする
+                    is_long = random.random() < 0.5
+                    length = random.randint(12, 28) if is_long else random.randint(3, 10)
+                    
                     for _ in range(length):
                         if current_w in model:
                             next_w = random.choice(model[current_w])
                             generated_words.append(next_w)
                             current_w = next_w
-                            if random.random() < 0.15:
+                            if not is_long and random.random() < 0.15:
                                 break
                         else:
                             break
                     
                     result_text = "".join(generated_words)
                     
+                    # ★ 文の最後に「〜の足立」などの独特な口調をランダムで付与（30%の確率）
+                    if random.random() < 0.3:
+                        endings = ["の足立", "なんだが", "なんだよな", "しれない", "ねんな", "…な？"]
+                        result_text += random.choice(endings)
+                    
                     # わけわからん絵文字の候補
                     emojis = ["🫠", "✨", "💀", "👍", "🤔", "🥺", "草", "🙏", "🌿", "💡"]
                     
-                    # 10% (0.1) の確率で絵文字をぶっこむ
+                    # 10% (0.1) の確率で絵文字を先頭か文末にぶっこむ
                     if random.random() < 0.1:
                         chosen_emoji = random.choice(emojis)
-                        # 50%の確率で「先頭」か「文末」にランダム配置
                         if random.random() < 0.5:
                             result_text = chosen_emoji + " " + result_text
                         else:
                             result_text = result_text + " " + chosen_emoji
                     
                     if len(result_text) > 1:
-                        print(f"ぐちゃぐちゃ生成成功: {result_text}")
+                        print(f"生成成功 (長文フラグ: {is_long}): {result_text}")
                         return result_text
 
                 return random.choice(lines)
@@ -115,7 +122,6 @@ def callback():
 def handle_message(event):
     user_msg = event.message.text
     
-    # 反応させるキーワードリスト（固有ワード ＋ 足立レイのカラーコード）
     keywords = [
         "足立レイ", "レイ", "からあげ", "ズモ", "ずも", "生殖器",
         "#FF6600", "#FF7F00", "#FFFFFF", "#333333", "#4D4D4D", "#FFCC00", "#FF9900",
