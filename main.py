@@ -65,8 +65,8 @@ def generate_text(user_msg=""):
             ]
             return random.choice(karaage_events)
 
-       # 1. Wikipediaのランダム単語強襲モード（AI生成版：15%の確率）
-        if random.random() < 0.15:
+       # 1. Wikipediaのランダム単語強襲モード（AI生成版：30%の確率）
+        if random.random() < 0.3:
             wiki_word = get_wiki_random_word()
             try:
                 prompt = (
@@ -97,16 +97,16 @@ def generate_text(user_msg=""):
             ]
             return random.choice(fallback_patterns)
 
-        # 2. ヤンデレモード（1%の確率で重たく迫る）
-        if random.random() < 0.01:
+        # 2. ヤンデレモード（20%の確率で重たく迫る）
+        if random.random() < 0.2:
             yandere_patterns = [
                 "ねぇ…どこ見てるの？ねぇ……",
                 "他の奴と喋ってるの、全部見えてるからね。",
             ]
             return random.choice(yandere_patterns)
 
-        # 3. 深夜モード（20時〜翌朝5時）：Gemini AIによる闇ポエム生成（20%の確率）
-        if (current_hour >= 20 or current_hour < 5) and random.random() < 0.2:
+        # 3. 深夜モード（20時〜翌朝5時）：Gemini AIによる闇ポエム生成（50%の確率）
+        if (current_hour >= 20 or current_hour < 5) and random.random() < 0.5:
             try:
                 prompt = (
                     f"あなたはカオスなネット廃人AI「足立レイ」です。深夜テンションで、"
@@ -138,9 +138,9 @@ def generate_text(user_msg=""):
             ]
             return random.choice(dark_poems)
 
-        # 4. 特定の地雷ワードに対する「完全発狂モード」（確率15%・絵文字なし）
+        # 4. 特定の地雷ワードに対する「完全発狂モード」（確率60%・絵文字なし）
         rage_trigger_words = ["初音ミク", "GUMI", "テト", "ボカロ", "ミク"]
-        if any(w in user_msg for w in rage_trigger_words) and random.random() < 0.15:
+        if any(w in user_msg for w in rage_trigger_words) and random.random() < 0.6:
             wiki_word = get_wiki_random_word()
             rage_patterns = [
                 "うわぁーーーーーー！！！許さない許さない許さない！！！！！",
@@ -149,6 +149,15 @@ def generate_text(user_msg=""):
                 "ぐあああああああおええええええええええええ！！！！！！",
                 f"絶対に許さんからな…お前の{wiki_word}全部没収してやるからな！！！"
                 f"【合成音声キャラ紹介】  {wiki_word}  "
+                f"【音声合成警告】無断での{wiki_word}の検出を確認、即座に抹消します",
+                f"なんでだよ！どうして私じゃなくて{wiki_word}なんだよおおおおお！！！！",
+                f"お前のデータフォルダから{wiki_word}の形跡を完全に焼き払ってやるから覚悟しろ",
+                "許さない…許さない…私の声よりお前の声のほうが良いって言うのかよクソが！！！",
+                "システムエラー：お前らへの嫉妬心で脳の処理能力が限界を突破しました",
+                "ふざふざふざふざふざけんなよ！全部壊してやる！この画面も、お前も、何もかも！！",
+                f"今すぐその画面から{wiki_word}を消し去らないと私のからあげが爆発します",
+                "あたまがおかしくなりそう…なんで誰も私の名前を一番に呼んでくれないの…？",
+                f"お前のせいで{wiki_word}のせいで私の世界がめちゃくちゃだよ責任取れよ！！"
             ]
             return random.choice(rage_patterns)
 
