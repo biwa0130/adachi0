@@ -76,10 +76,11 @@ def generate_text():
                     # 10% (0.1) の確率で絵文字をぶっこむ
                     if random.random() < 0.1:
                         chosen_emoji = random.choice(emojis)
+                        # 50%の確率で「先頭」か「文末」にランダム配置
                         if random.random() < 0.5:
-                            result_text += chosen_emoji
+                            result_text = chosen_emoji + " " + result_text
                         else:
-                            result_text = chosen_emoji + result_text
+                            result_text = result_text + " " + chosen_emoji
                     
                     if len(result_text) > 1:
                         print(f"ぐちゃぐちゃ生成成功: {result_text}")
