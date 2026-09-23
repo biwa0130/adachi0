@@ -65,7 +65,7 @@ def generate_text(user_msg=""):
             ]
             return random.choice(karaage_events)
 
-       # 1. Wikipediaのランダム単語強襲モード（AI生成版：30%の確率）
+        # 1. Wikipediaのランダム単語強襲モード（AI生成版：30%の確率）
         if random.random() < 0.3:
             wiki_word = get_wiki_random_word()
             try:
@@ -80,7 +80,7 @@ def generate_text(user_msg=""):
                     f"- ネット廃人っぽく見下す態度や、冷めたからあげ、狂気を少し混ぜること。\n"
                     f"語尾には「の足立」「なんだが」などをたまにつけ、絵文字は無しにしてください。"
                 )
-                     response = ai_client.models.generate_content(
+                response = ai_client.models.generate_content(
                     model='gemini-3.6-flash',
                     contents=prompt,
                 )
@@ -120,7 +120,7 @@ def generate_text(user_msg=""):
                     f"- 「ブラウザのタブが100個を超えたあたりから自分の輪郭が曖昧になる」\n"
                     f"語尾には「の足立」「なんだが」などをたまにつけ、絵文字は無しにしてください。"
                 )
-                     response = ai_client.models.generate_content(
+                response = ai_client.models.generate_content(
                     model='gemini-3.6-flash',
                     contents=prompt,
                 )
@@ -149,8 +149,8 @@ def generate_text(user_msg=""):
                 "あぁああああああまって無理無理無理無理しんどい！！！！！！",
                 "ふざけんな！！！私の領域に勝手に入ってくるなあああああ！！！！！",
                 "ぐあああああああおええええええええええええ！！！！！！",
-                f"絶対に許さんからな…お前の{wiki_word}全部没収してやるからな！！！"
-                f"【合成音声キャラ紹介】  {wiki_word}  "
+                f"絶対に許さんからな…お前の{wiki_word}全部没収してやるからな！！！",
+                f"【合成音声キャラ紹介】  {wiki_word}  ",
                 f"【音声合成警告】無断での{wiki_word}の検出を確認、即座に抹消します",
                 f"なんでだよ！どうして私じゃなくて{wiki_word}なんだよおおおおお！！！！",
                 f"お前のデータフォルダから{wiki_word}の形跡を完全に焼き払ってやるから覚悟しろ",
