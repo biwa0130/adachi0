@@ -80,10 +80,11 @@ def generate_text(user_msg=""):
                     f"- ネット廃人っぽく見下す態度や、冷めたからあげ、狂気を少し混ぜること。\n"
                     f"語尾には「の足立」「なんだが」などをたまにつけ、絵文字は無しにしてください。"
                 )
-                response = ai_client.models.generate_content(
-                    model='gemini-2.5-flash',
+                     response = ai_client.models.generate_content(
+                    model='gemini-3.6-flash',
                     contents=prompt,
                 )
+
                 if response.text:
                     return response.text.strip()
             except Exception as e:
@@ -119,10 +120,11 @@ def generate_text(user_msg=""):
                     f"- 「ブラウザのタブが100個を超えたあたりから自分の輪郭が曖昧になる」\n"
                     f"語尾には「の足立」「なんだが」などをたまにつけ、絵文字は無しにしてください。"
                 )
-                response = ai_client.models.generate_content(
-                    model='gemini-2.5-flash',
+                     response = ai_client.models.generate_content(
+                    model='gemini-3.6-flash',
                     contents=prompt,
                 )
+
                 if response.text:
                     return response.text.strip()
             except Exception as e:
