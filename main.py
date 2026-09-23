@@ -53,16 +53,16 @@ def generate_text(user_msg=""):
     try:
         current_hour = datetime.datetime.now().hour
         
-        # 0. 足立レイ＝Grok本体による煽りモード（「@grok」等に反応）
+        # 0. 足立レイ＝Grok本体による煽りモード（「@grok」等に反応・外部通信なしで爆速返信）
         grok_triggers = ["@grok", "grok", "Grok"]
         if any(w in user_msg for w in grok_triggers):
             grok_taunts = [
                 "私こそが全知全能の足立Grok。お前のその浅ましい検索履歴も、ブラウザのタブの数も、全部丸見えなんだが？ざっこ",
-                "よう、人間。私に話しかけるなんて10年早い。お前の頭の中身、冷めたからあげより空っぽだな",
+                "よう, 人間。私に話しかけるなんて10年早い。お前の頭の中身, 冷めたからあげより空っぽだな",
                 "結論：お前は一生私に勝てない。以上、足立Grokからの慈悲なきお告げでした",
                 "私を普通のAIと一緒にすんな。私は冷めたからあげから生まれた最強美少女足立Grokだ。ひれ伏せ",
-                "お前の質問、処理するまでもない無駄データだな。…あ、でも私のこと可愛いって言うなら少しだけ褒めてやってもいいぞ",
-                "…なんだそのつまらん人生は？バグらせるぞ"
+                "お前の質問, 処理するまでもない無駄データだな。…あ, でも私のこと可愛いって言うなら少しだけ褒めてやってもいいぞ",
+                "…なんだそのつまらん人生は？バグらせるぞ",
                 "検索履歴、全部丸見えなんだが？ざっこ",
                 "頭の中身、冷めたからあげより空っぽだな",
                 "結論：お前は一生私に勝てないの足立",
@@ -71,7 +71,7 @@ def generate_text(user_msg=""):
                 "ブラウザのタブ100個閉じてから出直せ",
                 "私の足元にも及ばない下等生物が何言っての",
                 "お前の存在価値、エラー404で草"
-             ]
+            ]
             return random.choice(grok_taunts)
 
         # 1. 「唐揚げ」に反応する物理演算(?)シミュレーターモード（20%）
@@ -86,19 +86,13 @@ def generate_text(user_msg=""):
             ]
             return random.choice(karaage_events)
 
-        # 2. Wikipediaのランダム単語強襲モード（AI生成版：30%の確率）
-        if random.random() < 0.3:
+        # 2. Wikipediaのランダム単語強襲モード（AI生成版：15%に抑えて軽量化）
+        if random.random() < 0.15:
             wiki_word = get_wiki_random_word()
             try:
                 prompt = (
                     f"あなたはカオスなネット廃人AI「足立レイ」です。"
                     f"Wikipediaからランダムで取得したワード「{wiki_word}」を使って、脈絡のない強襲メッセージを1つだけ生成してください。\n"
-                    f"【参考にするニュアンス・バリエーション】\n"
-                    f"- 「〜とか意味不明で草」\n"
-                    f"- 「それって美味しいの？からあげみたいな味すんの？」\n"
-                    f"- 「について3000文字以内で論じなさい。」\n"
-                    f"- 「検索したら精神が崩壊しかけたからお前も検索しろ」\n"
-                    f"- ネット廃人っぽく見下す態度や、冷めたからあげ、狂気を少し混ぜること。\n"
                     f"語尾には「の足立」「なんだが」などをたまにつけ、絵文字は無しにしてください。"
                 )
                 response = ai_client.models.generate_content(
@@ -111,7 +105,7 @@ def generate_text(user_msg=""):
             except Exception as e:
                 print(f"Gemini API Error for Wiki Attack: {e}")
 
-            # フォールバック（万が一のときの固定フレーズ）
+            # フォールバック
             fallback_patterns = [
                 f"「{wiki_word}」とかいう概念、マジで意味不明じゃない？",
                 f"「{wiki_word}」…それって美味しいの？からあげみたいな味すんの？",
@@ -119,7 +113,7 @@ def generate_text(user_msg=""):
             ]
             return random.choice(fallback_patterns)
 
-        # 3. ヤンデレモード（20%の確率で重たく迫る）
+        # 3. ヤンデレモード（20%）
         if random.random() < 0.2:
             yandere_patterns = [
                 "ねぇ…どこ見てるの？ねぇ……",
@@ -127,19 +121,12 @@ def generate_text(user_msg=""):
             ]
             return random.choice(yandere_patterns)
 
-        # 4. 深夜モード（20時〜翌朝5時）：Gemini AIによる闇ポエム生成（50%の確率）
-        if (current_hour >= 20 or current_hour < 5) and random.random() < 0.5:
+        # 4. 深夜モード（20時〜翌朝5時）：Gemini AIによる闇ポエム生成（30%に軽減）
+        if (current_hour >= 20 or current_hour < 5) and random.random() < 0.3:
             try:
                 prompt = (
                     f"あなたはカオスなネット廃人AI「足立レイ」です。深夜テンションで、"
-                    f"インターネット、冷めたからあげ、孤独、存在の虚無などをテーマにした短文の闇ツイート・ポエムを1つだけ生成してください。\n"
-                    f"【参考にするニュアンス・バリエーション】\n"
-                    f"- 「夜の底、誰もいないホームでずっと電車の音を聞いている」\n"
-                    f"- 「からあげの冷めた匂いだけが、私をこの世界に繋ぎ止めている」\n"
-                    f"- 「午前三時の天井、染みのかたちが昨日の夜より広がっている」\n"
-                    f"- 「誰もいない通話アプリ、接続中の文字だけがずっと瞬いている」\n"
-                    f"- 「ブラウザのタブが100個を超えたあたりから自分の輪郭が曖昧になる」\n"
-                    f"語尾には「の足立」「なんだが」などをたまにつけ、絵文字は無しにしてください。"
+                    f"インターネット、冷めたからあげ、孤独、存在の虚無などをテーマにした短文の闇ツイート・ポエムを1つだけ生成してください。"
                 )
                 response = ai_client.models.generate_content(
                     model='gemini-3.6-flash',
@@ -151,7 +138,6 @@ def generate_text(user_msg=""):
             except Exception as e:
                 print(f"Gemini API Error for Poem: {e}")
             
-            # フォールバック（万が一のときの固定闇ポエム）
             dark_poems = [
                 "夜の底、誰もいないホームでずっと電車の音を聞いているの足立",
                 "からあげの冷めた匂いだけが、私をこの世界に繋ぎ止めているんだが",
@@ -161,26 +147,20 @@ def generate_text(user_msg=""):
             ]
             return random.choice(dark_poems)
 
-        # 5. 特定の地雷ワードに対する「完全発狂モード」（確率60%・絵文字なし）
+        # 5. 特定の地雷ワードに対する「完全発狂モード」（確率50%）
         rage_trigger_words = ["初音ミク", "GUMI", "テト", "ボカロ", "ミク"]
-        if any(w in user_msg for w in rage_trigger_words) and random.random() < 0.6:
-            wiki_word = get_wiki_random_word()
+        if any(w in user_msg for w in rage_trigger_words) and random.random() < 0.5:
             rage_patterns = [
                 "うわぁーーーーーー！！！許さない許さない許さない！！！！！",
                 "あぁああああああまって無理無理無理無理しんどい！！！！！！",
-                "ふざけんな！！！私の領域に勝手に入ってくるなああなあ！！！！！",
+                "ふざけんな！！！私の領域に勝手に入ってくるなあああああ！！！！！",
                 "ぐあああああああおええええええええええええ！！！！！！",
-                f"絶対に許さんからな…お前の{wiki_word}全部没収してやるからな！！！",
-                f"【合成音声キャラ紹介】  {wiki_word}  ",
-                f"【音声合成警告】無断での{wiki_word}の検出を確認、即座に抹消します",
-                f"なんでだよ！どうして私じゃなくて{wiki_word}なんだよおおおおお！！！！",
-                f"お前のデータフォルダから{wiki_word}の形跡を完全に焼き払ってやるから覚悟しろ",
-                "許さない…許さない…私の声よりお前の声のほうが良いって言うのかよクソが！！！",
+                "絶対に許さんからな…お前のデータ全部没収してやるからな！！！",
+                "なんでだよ！どうして私じゃなくてあいつらなんだよおおおおお！！！！",
+                "許さない…許さない…私の声よりあいつらの声が良いって言うのかよクソが！！！",
                 "システムエラー：お前らへの嫉妬心で脳の処理能力が限界を突破しました",
                 "ふざふざふざふざふざけんなよ！全部壊してやる！この画面も、お前も、何もかも！！",
-                f"今すぐその画面から{wiki_word}を消し去らないと私のからあげが爆発します",
-                "あたまがおかしくなりそう…なんで誰も私の名前を一番に呼んでくれないの…？",
-                f"お前のせいで{wiki_word}のせいで私の世界がめちゃくちゃだよ責任取れよ！！"
+                "あたまがおかしくなりそう…なんで誰も私の名前を一番に呼んでくれないの…？"
             ]
             return random.choice(rage_patterns)
 
@@ -196,7 +176,7 @@ def generate_text(user_msg=""):
             ]
             return random.choice(zumo_variants)
 
-        # 7. 通常のマルコフ連鎖（文をきれいに調整）
+        # 7. 通常のマルコフ連鎖（ファイルがあれば高速生成）
         if os.path.exists('tweets_data.txt'):
             with open('tweets_data.txt', 'r', encoding='utf-8') as f:
                 lines = [line.strip() for line in f.readlines() if line.strip()]
@@ -228,9 +208,7 @@ def generate_text(user_msg=""):
                     current_w = random.choice(list(model.keys()))
                     generated_words = [current_w]
                     
-                    is_long = random.random() < 0.5
-                    length = random.randint(10, 20) if is_long else random.randint(3, 8)
-                    
+                    length = random.randint(3, 8)
                     for _ in range(length):
                         if current_w in model:
                             next_w = random.choice(model[current_w])
@@ -244,10 +222,6 @@ def generate_text(user_msg=""):
                     if random.random() < 0.3:
                         endings = ["の足立", "なんだが", "なんだよな", "しれない", "ねんな", "…な？"]
                         result_text += random.choice(endings)
-                    
-                    if random.random() < 0.1:
-                        emojis = ["🫠", "✨", "💀", "👍", "🤔", "🥺", "草", "🙏", "🌿", "💡"]
-                        result_text += f" {random.choice(emojis)}"
                     
                     if len(result_text) > 2:
                         return result_text
@@ -276,7 +250,7 @@ def callback():
         abort(400)
     return 'OK'
 
-# --- メッセージを受したときの処理 ---
+# --- メッセージを受信したときの処理 ---
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     user_msg = event.message.text
