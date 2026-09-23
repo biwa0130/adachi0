@@ -67,7 +67,12 @@ def callback():
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     user_msg = event.message.text
-    if "足立レイ" in user_msg or "レイ" in user_msg:
+    
+    # 反応させるキーワードリスト（ここに含まれる言葉に反応します）
+    keywords = ["足立レイ", "レイ", "からあげ", "ズモ", "ずも", "生殖器", "へんたい", "マスター"]
+    
+    # メッセージの中にいずれかのキーワードが含まれているか判定
+    if any(keyword in user_msg for keyword in keywords):
         reply_text = generate_text()
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
