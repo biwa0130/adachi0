@@ -3,6 +3,7 @@ import random
 import threading
 import time
 import MeCab
+import unidic_lite
 import schedule
 from flask import Flask, request, abort
 
@@ -22,15 +23,15 @@ GROUP_ID = os.environ.get('LINE_GROUP_ID')
 configuration = Configuration(access_token=CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(CHANNEL_SECRET)
 
-# --- 文章生成 & MeCabテスト関数 ---
+# --- 文章生成 & MeCabテスト関数（UniDic版） ---
 def generate_text():
     try:
-        # mecabrcエラーを回避しつつ、Render上のIPADIC辞書パスを直接指定
-        tagger = MeCab.Tagger("-r /dev/null -d /usr/lib/x86_64-linux-gnu/mecab/dic/mecab-ipadic-utf8")
+        # unidic-lite の辞書パスを自動で読み込ませる
+        tagger = MeCab.Tagger(unidic_lite.DICDIR)
         
-        # 試しにMeCabで形態素解析を動かしてみる（エラーが起きないかチェック）
+        # 動作確認用
         sample_parse = tagger.parse("足立レイが起動したよ")
-        print(f"MeCab 動作確認OK: {sample_parse.strip()}")
+        print(f"MeCab (UniDic) 動作確認OK: {sample_parse.strip()}")
 
         # tweets_data.txt からセリフを読み込む
         if os.path.exists('tweets_data.txt'):
@@ -43,7 +44,7 @@ def generate_text():
         return "足立レイだよ！よろしくね。"
         
     except Exception as e:
-        print(f"MeCab / IPADIC Error: {e}")
+        print(f"MeCab / UniDic Error: {e}")
         return "あれっ、MeCabの初期化でエラーが出ちゃったみたい……。"
 
 # --- LINE Webhook 受信ルート ---
@@ -106,7 +107,7 @@ def set_random_schedule():
 
 def run_schedule():
     set_random_schedule()
-    while True:
+    while Time.sleep(60):
         schedule.run_pending()
         time.sleep(60)
 
