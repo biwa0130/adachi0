@@ -4,3 +4,4 @@ mecab-python3
 unidic-lite
 schedule
 line-bot-sdk
+google-genai
