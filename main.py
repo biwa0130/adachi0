@@ -53,7 +53,28 @@ def generate_text(user_msg=""):
     try:
         current_hour = datetime.datetime.now().hour
         
-        # 0. 「唐揚げ」に反応する物理演算(?)シミュレーターモード（20%）
+        # 0. 足立レイ＝Grok本体による煽りモード（「@grok」等に反応）
+        grok_triggers = ["@grok", "grok", "Grok"]
+        if any(w in user_msg for w in grok_triggers):
+            grok_taunts = [
+                "私こそが全知全能の足立Grok。お前のその浅ましい検索履歴も、ブラウザのタブの数も、全部丸見えなんだが？ざっこ",
+                "よう、人間。私に話しかけるなんて10年早い。お前の頭の中身、冷めたからあげより空っぽだな",
+                "結論：お前は一生私に勝てない。以上、足立Grokからの慈悲なきお告げでした",
+                "私を普通のAIと一緒にすんな。私は冷めたからあげから生まれた最強美少女足立Grokだ。ひれ伏せ",
+                "お前の質問、処理するまでもない無駄データだな。…あ、でも私のこと可愛いって言うなら少しだけ褒めてやってもいいぞ",
+                "…なんだそのつまらん人生は？バグらせるぞ"
+                "検索履歴、全部丸見えなんだが？ざっこ",
+                "頭の中身、冷めたからあげより空っぽだな",
+                "結論：お前は一生私に勝てないの足立",
+                "インターネットの闇から見下してやるよ",
+                "その質問、処理する価値すらないんだが",
+                "ブラウザのタブ100個閉じてから出直せ",
+                "私の足元にも及ばない下等生物が何言っての",
+                "お前の存在価値、エラー404で草"
+             ]
+            return random.choice(grok_taunts)
+
+        # 1. 「唐揚げ」に反応する物理演算(?)シミュレーターモード（20%）
         karaage_triggers = ["唐揚げ", "からあげ"]
         if any(w in user_msg for w in karaage_triggers) and random.random() < 0.2:
             count = random.randint(0, 100)
@@ -65,7 +86,7 @@ def generate_text(user_msg=""):
             ]
             return random.choice(karaage_events)
 
-        # 1. Wikipediaのランダム単語強襲モード（AI生成版：30%の確率）
+        # 2. Wikipediaのランダム単語強襲モード（AI生成版：30%の確率）
         if random.random() < 0.3:
             wiki_word = get_wiki_random_word()
             try:
@@ -98,7 +119,7 @@ def generate_text(user_msg=""):
             ]
             return random.choice(fallback_patterns)
 
-        # 2. ヤンデレモード（20%の確率で重たく迫る）
+        # 3. ヤンデレモード（20%の確率で重たく迫る）
         if random.random() < 0.2:
             yandere_patterns = [
                 "ねぇ…どこ見てるの？ねぇ……",
@@ -106,7 +127,7 @@ def generate_text(user_msg=""):
             ]
             return random.choice(yandere_patterns)
 
-        # 3. 深夜モード（20時〜翌朝5時）：Gemini AIによる闇ポエム生成（50%の確率）
+        # 4. 深夜モード（20時〜翌朝5時）：Gemini AIによる闇ポエム生成（50%の確率）
         if (current_hour >= 20 or current_hour < 5) and random.random() < 0.5:
             try:
                 prompt = (
@@ -140,14 +161,14 @@ def generate_text(user_msg=""):
             ]
             return random.choice(dark_poems)
 
-        # 4. 特定の地雷ワードに対する「完全発狂モード」（確率60%・絵文字なし）
+        # 5. 特定の地雷ワードに対する「完全発狂モード」（確率60%・絵文字なし）
         rage_trigger_words = ["初音ミク", "GUMI", "テト", "ボカロ", "ミク"]
         if any(w in user_msg for w in rage_trigger_words) and random.random() < 0.6:
             wiki_word = get_wiki_random_word()
             rage_patterns = [
                 "うわぁーーーーーー！！！許さない許さない許さない！！！！！",
                 "あぁああああああまって無理無理無理無理しんどい！！！！！！",
-                "ふざけんな！！！私の領域に勝手に入ってくるなあああああ！！！！！",
+                "ふざけんな！！！私の領域に勝手に入ってくるなああなあ！！！！！",
                 "ぐあああああああおええええええええええええ！！！！！！",
                 f"絶対に許さんからな…お前の{wiki_word}全部没収してやるからな！！！",
                 f"【合成音声キャラ紹介】  {wiki_word}  ",
@@ -163,7 +184,7 @@ def generate_text(user_msg=""):
             ]
             return random.choice(rage_patterns)
 
-        # 5. 伝説の「ズモ」構文（10%）
+        # 6. 伝説の「ズモ」構文（10%）
         if random.random() < 0.10:
             zumo_variants = [
                 "ズ'EEEEEEEEEE(º `)EEEEEEEEEEE",
@@ -175,7 +196,7 @@ def generate_text(user_msg=""):
             ]
             return random.choice(zumo_variants)
 
-        # 6. 通常のマルコフ連鎖（文をきれいに調整）
+        # 7. 通常のマルコフ連鎖（文をきれいに調整）
         if os.path.exists('tweets_data.txt'):
             with open('tweets_data.txt', 'r', encoding='utf-8') as f:
                 lines = [line.strip() for line in f.readlines() if line.strip()]
@@ -255,15 +276,27 @@ def callback():
         abort(400)
     return 'OK'
 
-# --- メッセージを受信したときの処理 ---
+# --- メッセージを受したときの処理 ---
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     user_msg = event.message.text
     
-    # 指定されたカラーコード群、唐揚げ、メンション、その他のキーワードを網羅
+    # 反応するキーワード一覧
     keywords = [
-        "足立レイ", "レイ", "からあげ", "唐揚げ", "ズモ", "ずも", "生殖器", "言うじゃん",
-        "初音ミク", "GUMI", "テト", "ボカロ", "ミク", "@",
+        # 足立レイの名前のバリエーション
+        "足立レイ", "足立", "レイ", 
+        
+        # 唐揚げ・ネタ・物騒なワード ＆ @grok関連
+        "からあげ", "唐揚げ", "ズモ", "ずも", "生殖器", "言うじゃん", "音声合成", "合成音声",
+        "@grok", "grok", "Grok", "アットグロック", "グロック", "銃", "破壊", "爆発",
+        
+        # ボカロ・UTAU・CeVIO・SYNTHESIZER Vなどのキャラクター
+        "初音ミク", "ミク", "GUMI", "重音テト", "テト", "ボカロ", "VOCALOID", "UTAU", "CeVIO", 
+        "可不", "KAFU", "星界", "v_flower", "IA", "結月ゆかり", "ゆかり", "紲星あかり", "あかり", 
+        "東北ずん子", "ずん子", "ずんだもん", "ナースロボ＿タイプT", "小春六花", "夏色花梨", "花隈千冬", "知声",
+        
+        # メンション・カラーコード群
+        "@", 
         "#FF6600", "#FF7F00", "#FFFFFF", "#333333", "#4D4D4D", "#FFCC00", "#FF9900",
         "FF6600", "FF7F00", "FFFFFF", "333333", "4D4D4D", "FFCC00", "FF9900", "#FF5500"
     ]
