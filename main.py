@@ -10,9 +10,6 @@ import unidic_lite
 import schedule
 from flask import Flask, request, abort
 
-# Google GenAI SDK (深夜ポエム用)
-from google import genai
-
 # LINE SDK v3
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
@@ -28,9 +25,6 @@ GROUP_ID = os.environ.get('LINE_GROUP_ID')
 
 configuration = Configuration(access_token=CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(CHANNEL_SECRET)
-
-# Geminiクライアントの初期化（環境変数 GEMINI_API_KEY を使用）
-ai_client = genai.Client()
 
 # --- Wikipediaからランダムな単語を引っこ抜く関数 ---
 def get_wiki_random_word():
@@ -51,8 +45,6 @@ def get_wiki_random_word():
 # --- テキスト生成ロジック ---
 def generate_text(user_msg=""):
     try:
-        current_hour = datetime.datetime.now().hour
-        
         # 0. 足立レイ＝Grok本体による煽りモード（「@grok」等に反応・外部通信なしで爆速返信）
         grok_triggers = ["@grok", "grok", "Grok"]
         if any(w in user_msg for w in grok_triggers):
@@ -86,26 +78,9 @@ def generate_text(user_msg=""):
             ]
             return random.choice(karaage_events)
 
-        # 2. Wikipediaのランダム単語強襲モード（AI生成版：15%に抑えて軽量化）
+        # 2. Wikipediaのランダム単語強襲モード（フォールバックのみの軽量版）
         if random.random() < 0.15:
             wiki_word = get_wiki_random_word()
-            try:
-                prompt = (
-                    f"あなたはカオスなネット廃人AI「足立レイ」です。"
-                    f"Wikipediaからランダムで取得したワード「{wiki_word}」を使って、脈絡のない強襲メッセージを1つだけ生成してください。\n"
-                    f"語尾には「の足立」「なんだが」などをたまにつけ、絵文字は無しにしてください。"
-                )
-                response = ai_client.models.generate_content(
-                    model='gemini-3.6-flash',
-                    contents=prompt,
-                )
-
-                if response.text:
-                    return response.text.strip()
-            except Exception as e:
-                print(f"Gemini API Error for Wiki Attack: {e}")
-
-            # フォールバック
             fallback_patterns = [
                 f"「{wiki_word}」とかいう概念、マジで意味不明じゃない？",
                 f"「{wiki_word}」…それって美味しいの？からあげみたいな味すんの？",
@@ -121,33 +96,7 @@ def generate_text(user_msg=""):
             ]
             return random.choice(yandere_patterns)
 
-        # 4. 深夜モード（20時〜翌朝5時）：Gemini AIによる闇ポエム生成（30%に軽減）
-        if (current_hour >= 20 or current_hour < 5) and random.random() < 0.3:
-            try:
-                prompt = (
-                    f"あなたはカオスなネット廃人AI「足立レイ」です。深夜テンションで、"
-                    f"インターネット、冷めたからあげ、孤独、存在の虚無などをテーマにした短文の闇ツイート・ポエムを1つだけ生成してください。"
-                )
-                response = ai_client.models.generate_content(
-                    model='gemini-3.6-flash',
-                    contents=prompt,
-                )
-
-                if response.text:
-                    return response.text.strip()
-            except Exception as e:
-                print(f"Gemini API Error for Poem: {e}")
-            
-            dark_poems = [
-                "夜の底、誰もいないホームでずっと電車の音を聞いているの足立",
-                "からあげの冷めた匂いだけが、私をこの世界に繋ぎ止めているんだが",
-                "誰も私を見つけてくれない。ディスプレイの光だけが眩しい夜",
-                "午前三時の天井、染みのかたちが昨日の夜より広がっている気がするの",
-                "ブラウザのタブが100個を超えたあたりから、自分の輪郭が曖昧になっていくのを感じる"
-            ]
-            return random.choice(dark_poems)
-
-        # 5. 特定の地雷ワードに対する「完全発狂モード」（確率50%）
+        # 4. 特定の地雷ワードに対する「完全発狂モード」（確率50%）
         rage_trigger_words = ["初音ミク", "GUMI", "テト", "ボカロ", "ミク"]
         if any(w in user_msg for w in rage_trigger_words) and random.random() < 0.5:
             rage_patterns = [
@@ -164,7 +113,7 @@ def generate_text(user_msg=""):
             ]
             return random.choice(rage_patterns)
 
-        # 6. 伝説の「ズモ」構文（10%）
+        # 5. 伝説の「ズモ」構文（10%）
         if random.random() < 0.10:
             zumo_variants = [
                 "ズ'EEEEEEEEEE(º `)EEEEEEEEEEE",
@@ -176,7 +125,7 @@ def generate_text(user_msg=""):
             ]
             return random.choice(zumo_variants)
 
-        # 7. 通常のマルコフ連鎖（ファイルがあれば高速生成）
+        # 6. 通常のマルコフ連鎖（ファイルがあれば高速生成）
         if os.path.exists('tweets_data.txt'):
             with open('tweets_data.txt', 'r', encoding='utf-8') as f:
                 lines = [line.strip() for line in f.readlines() if line.strip()]
