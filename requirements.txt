@@ -1,7 +1,7 @@
-Flask
-gunicorn
+flask
+line-bot-sdk
 mecab-python3
 unidic-lite
 schedule
-line-bot-sdk
-google-genai
+groq
+requests
