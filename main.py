@@ -13,7 +13,7 @@ from flask import Flask, request, abort
 # LINE SDK v3
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
-from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, PushMessageRequest, TextMessage
+from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, MessagingApiBlob, ReplyMessageRequest, PushMessageRequest, TextMessage
 from linebot.v3.webhooks import MessageEvent, TextMessageContent, AudioMessageContent
 
 # Groq API
@@ -218,27 +218,18 @@ def callback():
 
 # --- 共通のキーワード判定＆返信処理 ---
 def process_and_reply(event, user_msg):
-    # 反応するキーワード一覧
     keywords = [
-        # 足立レイの名前のバリエーション
         "足立レイ", "足立", "レイ", 
-        
-        # 唐揚げ・ネタ・物騒なワード ＆ @grok関連
         "からあげ", "唐揚げ", "ズモ", "ずも", "生殖器", "言うじゃん", "音声合成", "合成音声",
         "@grok", "grok", "Grok", "アットグロック", "グロック", "銃", "破壊", "爆発",
-        
-        # ボカロ・UTAU・CeVIO・SYNTHESIZER Vなどのキャラクター
         "初音ミク", "ミク", "GUMI", "重音テト", "テト", "ボカロ", "VOCALOID", "UTAU", "CeVIO", 
         "可不", "KAFU", "星界", "v_flower", "IA", "結月ゆかり", "ゆかり", "紲星あかり", "あかり", 
         "東北ずん子", "ずん子", "ずんだもん", "ナースロボ＿タイプT", "小春六花", "夏色花梨", "花隈千冬", "知声",
-        
-        # メンション・カラーコード群
         "@", 
         "#FF6600", "#FF7F00", "#FFFFFF", "#333333", "#4D4D4D", "#FFCC00", "#FF9900",
         "FF6600", "FF7F00", "FFFFFF", "333333", "4D4D4D", "FFCC00", "FF9900", "#FF5500"
     ]
     
-    # 音声メッセージの場合はキーワードなしでも反応させたい場合はここを調整してな（今回は共通でキーワードチェックを入れる形）
     if any(keyword in user_msg for keyword in keywords):
         reply_text = generate_text(user_msg)
         with ApiClient(configuration) as api_client:
@@ -256,20 +247,19 @@ def handle_text_message(event):
     user_msg = event.message.text
     process_and_reply(event, user_msg)
 
-# --- 音声メッセージを受信したときの処理 ---
+# --- 音声メッセージを受信したときの処理（MessagingApiBlobに対応） ---
 @handler.add(MessageEvent, message=AudioMessageContent)
 def handle_audio_message(event):
     message_id = event.message.id
     
-    # 1. LINEから音声ファイルをダウンロード
+    # 1. LINEから音声ファイルをダウンロード（MessagingApiBlobを使用）
     with ApiClient(configuration) as api_client:
-        line_bot_api = MessagingApi(api_client)
-        audio_stream = line_bot_api.get_message_content(message_id)
+        blob_api = MessagingApiBlob(api_client)
+        audio_stream = blob_api.get_message_content(message_id)
         
         audio_path = f"/tmp/{message_id}.m4a"
         with open(audio_path, "wb") as f:
-            for chunk in audio_stream:
-                f.write(chunk)
+            f.write(audio_stream)
                 
     # 2. GroqのWhisper APIで文字起こし
     user_msg = transcribe_audio(audio_path)
