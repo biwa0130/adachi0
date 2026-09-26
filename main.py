@@ -14,7 +14,10 @@ from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, PushMessageRequest, TextMessage
-from linebot.v3.webhooks import MessageEvent, TextMessageContent
+from linebot.v3.webhooks import MessageEvent, TextMessageContent, AudioMessageContent
+
+# Groq API
+from groq import Groq
 
 app = Flask(__name__)
 
@@ -22,9 +25,13 @@ app = Flask(__name__)
 CHANNEL_ACCESS_TOKEN = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
 CHANNEL_SECRET = os.environ.get('LINE_CHANNEL_SECRET')
 GROUP_ID = os.environ.get('LINE_GROUP_ID')
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY')
 
 configuration = Configuration(access_token=CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(CHANNEL_SECRET)
+
+# Groqクライアントの初期化
+groq_client = Groq(api_key=GROQ_API_KEY)
 
 # --- Wikipediaからランダムな単語を引っこ抜く関数 ---
 def get_wiki_random_word():
@@ -41,6 +48,20 @@ def get_wiki_random_word():
     except Exception as e:
         print(f"Wikipedia API Error: {e}")
         return "量子もつれ"
+
+# --- Groq Whisper APIで音声を文字起こしする関数 ---
+def transcribe_audio(audio_path):
+    try:
+        with open(audio_path, "rb") as file:
+            translation = groq_client.audio.transcriptions.create(
+                file=(audio_path, file.read()),
+                model="whisper-large-v3",
+                response_format="text"
+            )
+        return translation
+    except Exception as e:
+        print(f"Groq Whisper API Error: {e}")
+        return ""
 
 # --- テキスト生成ロジック ---
 def generate_text(user_msg=""):
@@ -125,7 +146,7 @@ def generate_text(user_msg=""):
             ]
             return random.choice(zumo_variants)
 
-        # 6. 通常のマルコフ連鎖（ファイルがあれば高速生成）
+        # 6. 通常のマルコフ連鎖（ファイルがあれば高速生成・勝手な語尾なし）
         if os.path.exists('tweets_data.txt'):
             with open('tweets_data.txt', 'r', encoding='utf-8') as f:
                 lines = [line.strip() for line in f.readlines() if line.strip()]
@@ -168,10 +189,6 @@ def generate_text(user_msg=""):
                     
                     result_text = "".join(generated_words)
                     
-                    if random.random() < 0.3:
-                        endings = ["の足立", "なんだが", "なんだよな", "しれない", "ねんな", "…な？"]
-                        result_text += random.choice(endings)
-                    
                     if len(result_text) > 2:
                         return result_text
 
@@ -199,11 +216,8 @@ def callback():
         abort(400)
     return 'OK'
 
-# --- メッセージを受信したときの処理 ---
-@handler.add(MessageEvent, message=TextMessageContent)
-def handle_message(event):
-    user_msg = event.message.text
-    
+# --- 共通のキーワード判定＆返信処理 ---
+def process_and_reply(event, user_msg):
     # 反応するキーワード一覧
     keywords = [
         # 足立レイの名前のバリエーション
@@ -224,6 +238,7 @@ def handle_message(event):
         "FF6600", "FF7F00", "FFFFFF", "333333", "4D4D4D", "FFCC00", "FF9900", "#FF5500"
     ]
     
+    # 音声メッセージの場合はキーワードなしでも反応させたい場合はここを調整してな（今回は共通でキーワードチェックを入れる形）
     if any(keyword in user_msg for keyword in keywords):
         reply_text = generate_text(user_msg)
         with ApiClient(configuration) as api_client:
@@ -234,6 +249,39 @@ def handle_message(event):
                     messages=[TextMessage(text=reply_text)]
                 )
             )
+
+# --- テキストメッセージを受信したときの処理 ---
+@handler.add(MessageEvent, message=TextMessageContent)
+def handle_text_message(event):
+    user_msg = event.message.text
+    process_and_reply(event, user_msg)
+
+# --- 音声メッセージを受信したときの処理 ---
+@handler.add(MessageEvent, message=AudioMessageContent)
+def handle_audio_message(event):
+    message_id = event.message.id
+    
+    # 1. LINEから音声ファイルをダウンロード
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+        audio_stream = line_bot_api.get_message_content(message_id)
+        
+        audio_path = f"/tmp/{message_id}.m4a"
+        with open(audio_path, "wb") as f:
+            for chunk in audio_stream:
+                f.write(chunk)
+                
+    # 2. GroqのWhisper APIで文字起こし
+    user_msg = transcribe_audio(audio_path)
+    print(f"音声文字起こし結果: {user_msg}")
+    
+    # 一時ファイルの削除
+    if os.path.exists(audio_path):
+        os.remove(audio_path)
+        
+    # 3. 文字起こしできたら従来の処理へ
+    if user_msg:
+        process_and_reply(event, user_msg)
 
 # --- 9時〜20時のランダム自動投稿 ---
 def scheduled_job():
