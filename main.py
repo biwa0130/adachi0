@@ -49,24 +49,15 @@ def get_wiki_random_word():
         print(f"Wikipedia API Error: {e}")
         return "量子もつれ"
 
-# --- Groq Whisper APIで音声を文字起こしする関数（プロンプトで認識精度アップ） ---
+# --- Groq Whisper APIで音声を文字起こしする関数 ---
 def transcribe_audio(audio_path):
     try:
         with open(audio_path, "rb") as file:
             translation = groq_client.audio.transcriptions.create(
-                file=(audio_path, file.read()),
                 model="whisper-large-v3",
+                file=(os.path.basename(audio_path), file),
                 response_format="text",
-                # 聞き取りの精度を上げるためのヒント（足立レイや頻出ワードを登録）
-                prompt="足立レイ", "足立", "レイ", "重ねて",
-        "からあげ", "唐揚げ", "ズモ", "ずも", "生殖器", "言うじゃん", "音声合成", "合成音声",
-        "@grok", "grok", "Grok", "アットグロック", "グロック", "銃", "破壊", "爆発",
-        "初音ミク", "ミク", "GUMI", "重音テト", "テト", "ボカロ", "VOCALOID", "UTAU", "CeVIO", 
-        "可不", "KAFU", "星界", "v_flower", "IA", "結月ゆかり", "ゆかり", "紲星あかり", "あかり", 
-        "東北ずん子", "ずん子", "ずんだもん", "ナースロボ＿タイプT", "小春六花", "夏色花梨", "花隈千冬", "知声",
-        "@", 
-        "#FF6600", "#FF7F00", "#FFFFFF", "#333333", "#4D4D4D", "#FFCC00", "#FF9900",
-        "FF6600", "FF7F00", "FFFFFF", "333333", "4D4D4D", "FFCC00", "FF9900", "#FF5500"
+                prompt="足立レイ, 重ねて, からあげ, 唐揚げ, ズモ, ずも, 初音ミク, 重音テト, GUMI, @grok"
             )
         return translation
     except Exception as e:
