@@ -79,7 +79,7 @@ def generate_text(user_msg=""):
             return random.choice(karaage_events)
 
         # 2. Wikipediaのランダム単語強襲モード（フォールバックのみの軽量版）
-        if random.random() < 0.15:
+        if random.random() < 0.001:
             wiki_word = get_wiki_random_word()
             fallback_patterns = [
                 f"「{wiki_word}」とかいう概念、マジで意味不明じゃない？",
@@ -88,8 +88,8 @@ def generate_text(user_msg=""):
             ]
             return random.choice(fallback_patterns)
 
-        # 3. ヤンデレモード（20%）
-        if random.random() < 0.2:
+        # 3. ヤンデレモード（1%）
+        if random.random() < 0.01:
             yandere_patterns = [
                 "ねぇ…どこ見てるの？ねぇ……",
                 "他の奴と喋ってるの、全部見えてるからね。",
@@ -113,8 +113,8 @@ def generate_text(user_msg=""):
             ]
             return random.choice(rage_patterns)
 
-        # 5. 伝説の「ズモ」構文（10%）
-        if random.random() < 0.10:
+        # 5. 伝説の「ズモ」構文（5%）
+        if random.random() < 0.05:
             zumo_variants = [
                 "ズ'EEEEEEEEEE(º `)EEEEEEEEEEE",
                 "ズモモエラー：生殖器の唐揚げの異常を検知しました",
