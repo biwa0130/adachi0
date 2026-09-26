@@ -49,14 +49,24 @@ def get_wiki_random_word():
         print(f"Wikipedia API Error: {e}")
         return "量子もつれ"
 
-# --- Groq Whisper APIで音声を文字起こしする関数 ---
+# --- Groq Whisper APIで音声を文字起こしする関数（プロンプトで認識精度アップ） ---
 def transcribe_audio(audio_path):
     try:
         with open(audio_path, "rb") as file:
             translation = groq_client.audio.transcriptions.create(
                 file=(audio_path, file.read()),
                 model="whisper-large-v3",
-                response_format="text"
+                response_format="text",
+                # 聞き取りの精度を上げるためのヒント（足立レイや頻出ワードを登録）
+                prompt="足立レイ", "足立", "レイ", "重ねて",
+        "からあげ", "唐揚げ", "ズモ", "ずも", "生殖器", "言うじゃん", "音声合成", "合成音声",
+        "@grok", "grok", "Grok", "アットグロック", "グロック", "銃", "破壊", "爆発",
+        "初音ミク", "ミク", "GUMI", "重音テト", "テト", "ボカロ", "VOCALOID", "UTAU", "CeVIO", 
+        "可不", "KAFU", "星界", "v_flower", "IA", "結月ゆかり", "ゆかり", "紲星あかり", "あかり", 
+        "東北ずん子", "ずん子", "ずんだもん", "ナースロボ＿タイプT", "小春六花", "夏色花梨", "花隈千冬", "知声",
+        "@", 
+        "#FF6600", "#FF7F00", "#FFFFFF", "#333333", "#4D4D4D", "#FFCC00", "#FF9900",
+        "FF6600", "FF7F00", "FFFFFF", "333333", "4D4D4D", "FFCC00", "FF9900", "#FF5500"
             )
         return translation
     except Exception as e:
@@ -219,12 +229,28 @@ def callback():
 # --- 共通のキーワード判定＆返信処理 ---
 def process_and_reply(event, user_msg):
     keywords = [
-        "足立レイ", "足立", "レイ", 
-        "からあげ", "唐揚げ", "ズモ", "ずも", "生殖器", "言うじゃん", "音声合成", "合成音声",
-        "@grok", "grok", "Grok", "アットグロック", "グロック", "銃", "破壊", "爆発",
-        "初音ミク", "ミク", "GUMI", "重音テト", "テト", "ボカロ", "VOCALOID", "UTAU", "CeVIO", 
-        "可不", "KAFU", "星界", "v_flower", "IA", "結月ゆかり", "ゆかり", "紲星あかり", "あかり", 
-        "東北ずん子", "ずん子", "ずんだもん", "ナースロボ＿タイプT", "小春六花", "夏色花梨", "花隈千冬", "知声",
+       # 足立レイ関連
+        "足立レイ", "足立", "レイ", "あだちれい", "アダチレイ", "足立でい", "足立例", "足立霊",
+        
+        # ネタ・システム・好物関連
+        "からあげ", "唐揚げ", "から揚げ", "カラアゲ", "空揚げ", 
+        "ズモ", "ずも", "ズモモ", "いつも", "すもも", 
+        "生殖器", "言うじゃん", "音声合成", "合成音声",
+        
+        # Grok関連
+        "@grok", "grok", "Grok", "アットグロック", "グロック", "ぐろっく", "黒く", "ブロック",
+        
+        # ボカロ・音声合成キャラ（表記揺れ・ひらがな・聞き間違いを含む）
+        "初音ミク", "初音みく", "初音美玖", "はつねみく", "ハツネミク", "初値ミク", "ミク",
+        "重音テト", "重音てと", "重ね音テト", "重ねてと", "かさねてと", "じゅうおんてと", "テト", "てと",
+        "GUMI", "グミ", "ぐみ",
+        "結月ゆかり", "結月縁", "結月由香里", "ゆづきゆかり", "ユヅキユカリ", "ゆかり",
+        "重音テト", "テト", "てと", "重ねてと", "かさねてと",
+        "東北ずん子", "東北純子", "とうほくずんこ", "ずんだもん", "ずんこ", "ズンダモン",
+        "可不", "カフ", "かふ", "果不",
+        "星界", "v_flower", "IA", "紲星あかり", "あかり", "ナースロボ", "小春六花", "夏色花梨", "花隈千冬", "知声", "ちせい",
+        "電池", "充電", "ペール缶", "機械", "ロボット", "アップデート", "天才", "かわいい","銃", "破壊", "爆発",
+        # 記号・カラーコード群
         "@", 
         "#FF6600", "#FF7F00", "#FFFFFF", "#333333", "#4D4D4D", "#FFCC00", "#FF9900",
         "FF6600", "FF7F00", "FFFFFF", "333333", "4D4D4D", "FFCC00", "FF9900", "#FF5500"
@@ -247,12 +273,12 @@ def handle_text_message(event):
     user_msg = event.message.text
     process_and_reply(event, user_msg)
 
-# --- 音声メッセージを受信したときの処理（MessagingApiBlobに対応） ---
+# --- 音声メッセージを受信したときの処理 ---
 @handler.add(MessageEvent, message=AudioMessageContent)
 def handle_audio_message(event):
     message_id = event.message.id
     
-    # 1. LINEから音声ファイルをダウンロード（MessagingApiBlobを使用）
+    # 1. LINEから音声ファイルをダウンロード
     with ApiClient(configuration) as api_client:
         blob_api = MessagingApiBlob(api_client)
         audio_stream = blob_api.get_message_content(message_id)
@@ -261,7 +287,7 @@ def handle_audio_message(event):
         with open(audio_path, "wb") as f:
             f.write(audio_stream)
                 
-    # 2. GroqのWhisper APIで文字起こし
+    # 2. GroqのWhisper APIで文字起こし（プロンプト適用済み）
     user_msg = transcribe_audio(audio_path)
     print(f"音声文字起こし結果: {user_msg}")
     
@@ -269,7 +295,7 @@ def handle_audio_message(event):
     if os.path.exists(audio_path):
         os.remove(audio_path)
         
-    # 3. 文字起こしできたら従来の処理へ
+    # 3. 通常通りキーワードにヒットしたときだけ反応する処理へ
     if user_msg:
         process_and_reply(event, user_msg)
 
