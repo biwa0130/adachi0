@@ -5,8 +5,6 @@ import time
 import datetime
 import urllib.request
 import json
-import MeCab
-import unidic_lite
 import schedule
 from flask import Flask, request, abort
 
@@ -32,44 +30,6 @@ handler = WebhookHandler(CHANNEL_SECRET)
 
 # Groqクライアントの初期化
 groq_client = Groq(api_key=GROQ_API_KEY)
-
-# --- 【軽量化】起動時に一度だけマルコフ連鎖のモデルをメモリに作成する ---
-MARKOV_MODEL = {}
-MARKOV_LINES = []
-
-def init_markov_model():
-    global MARKOV_MODEL, MARKOV_LINES
-    if os.path.exists('tweets_data.txt'):
-        print("マルコフ連鎖のデータを読み込んでいます...")
-        try:
-            with open('tweets_data.txt', 'r', encoding='utf-8') as f:
-                MARKOV_LINES = [line.strip() for line in f.readlines() if line.strip()]
-            
-            if MARKOV_LINES:
-                tagger = MeCab.Tagger(unidic_lite.DICDIR)
-                model = {}
-                for line in MARKOV_LINES:
-                    parsed = tagger.parse(line)
-                    words = []
-                    for row in parsed.split('\n'):
-                        if row == 'EOS' or row == '':
-                            continue
-                        cols = row.split('\t')
-                        if len(cols) > 0:
-                            words.append(cols[0])
-                    
-                    if len(words) < 2:
-                        continue
-                    
-                    for i in range(len(words) - 1):
-                        w1, w2 = words[i], words[i+1]
-                        if w1 not in model:
-                            model[w1] = []
-                        model[w1].append(w2)
-                MARKOV_MODEL = model
-                print(f"マルコフ連鎖の初期化完了！ 登録行数: {len(MARKOV_LINES)}行")
-        except Exception as e:
-            print(f"Markov Init Error: {e}")
 
 # --- Wikipediaからランダムな単語を引っこ抜く関数 ---
 def get_wiki_random_word():
@@ -102,7 +62,7 @@ def transcribe_audio(audio_path):
         print(f"Groq Whisper API Error: {e}")
         return ""
 
-# --- テキスト生成ロジック（軽量版） ---
+# --- テキスト生成ロジック（2万行高速ランダム取得版） ---
 def generate_text(user_msg=""):
     try:
         # 0. Grok煽りモード
@@ -185,26 +145,12 @@ def generate_text(user_msg=""):
             ]
             return random.choice(zumo_variants)
 
-        # 6. メモリ上のマルコフ連鎖モデルから超高速生成
-        if MARKOV_MODEL:
-            current_w = random.choice(list(MARKOV_MODEL.keys()))
-            generated_words = [current_w]
-            
-            length = random.randint(3, 8)
-            for _ in range(length):
-                if current_w in MARKOV_MODEL:
-                    next_w = random.choice(MARKOV_MODEL[current_w])
-                    generated_words.append(next_w)
-                    current_w = next_w
-                else:
-                    break
-            
-            result_text = "".join(generated_words)
-            if len(result_text) > 2:
-                return result_text
-        
-        if MARKOV_LINES:
-            return random.choice(MARKOV_LINES)
+        # 6. tweets_data.txt からランダムに1行を爆速で取得
+        if os.path.exists('tweets_data.txt'):
+            with open('tweets_data.txt', 'r', encoding='utf-8') as f:
+                lines = [line.strip() for line in f.readlines() if line.strip()]
+            if lines:
+                return random.choice(lines)
                 
         return "ズ'EEEEEEEEEE(º `)EEEEEEEEEEE"
         
@@ -327,9 +273,6 @@ def run_schedule():
 
 # --- サーバー起動 ---
 if __name__ == "__main__":
-    # 起動時にマルコフ連鎖モデルを一度だけ作成（軽量化の要）
-    init_markov_model()
-    
     t = threading.Thread(target=run_schedule)
     t.daemon = True
     t.start()
