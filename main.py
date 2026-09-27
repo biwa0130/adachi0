@@ -33,6 +33,44 @@ handler = WebhookHandler(CHANNEL_SECRET)
 # Groqクライアントの初期化
 groq_client = Groq(api_key=GROQ_API_KEY)
 
+# --- 【軽量化】起動時に一度だけマルコフ連鎖のモデルをメモリに作成する ---
+MARKOV_MODEL = {}
+MARKOV_LINES = []
+
+def init_markov_model():
+    global MARKOV_MODEL, MARKOV_LINES
+    if os.path.exists('tweets_data.txt'):
+        print("マルコフ連鎖のデータを読み込んでいます...")
+        try:
+            with open('tweets_data.txt', 'r', encoding='utf-8') as f:
+                MARKOV_LINES = [line.strip() for line in f.readlines() if line.strip()]
+            
+            if MARKOV_LINES:
+                tagger = MeCab.Tagger(unidic_lite.DICDIR)
+                model = {}
+                for line in MARKOV_LINES:
+                    parsed = tagger.parse(line)
+                    words = []
+                    for row in parsed.split('\n'):
+                        if row == 'EOS' or row == '':
+                            continue
+                        cols = row.split('\t')
+                        if len(cols) > 0:
+                            words.append(cols[0])
+                    
+                    if len(words) < 2:
+                        continue
+                    
+                    for i in range(len(words) - 1):
+                        w1, w2 = words[i], words[i+1]
+                        if w1 not in model:
+                            model[w1] = []
+                        model[w1].append(w2)
+                MARKOV_MODEL = model
+                print(f"マルコフ連鎖の初期化完了！ 登録行数: {len(MARKOV_LINES)}行")
+        except Exception as e:
+            print(f"Markov Init Error: {e}")
+
 # --- Wikipediaからランダムな単語を引っこ抜く関数 ---
 def get_wiki_random_word():
     try:
@@ -64,10 +102,10 @@ def transcribe_audio(audio_path):
         print(f"Groq Whisper API Error: {e}")
         return ""
 
-# --- テキスト生成ロジック ---
+# --- テキスト生成ロジック（軽量版） ---
 def generate_text(user_msg=""):
     try:
-        # 0. 足立レイ＝Grok本体による煽りモード（「@grok」等に反応・外部通信なしで爆速返信）
+        # 0. Grok煽りモード
         grok_triggers = ["@grok", "grok", "Grok"]
         if any(w in user_msg for w in grok_triggers):
             grok_taunts = [
@@ -88,7 +126,7 @@ def generate_text(user_msg=""):
             ]
             return random.choice(grok_taunts)
 
-        # 1. 「唐揚げ」に反応する物理演算(?)シミュレーターモード（20%）
+        # 1. 唐揚げモード（20%）
         karaage_triggers = ["唐揚げ", "からあげ"]
         if any(w in user_msg for w in karaage_triggers) and random.random() < 0.2:
             count = random.randint(0, 100)
@@ -100,7 +138,7 @@ def generate_text(user_msg=""):
             ]
             return random.choice(karaage_events)
 
-        # 2. Wikipediaのランダム単語強襲モード（フォールバックのみの軽量版）
+        # 2. Wikipedia強襲（0.1%）
         if random.random() < 0.001:
             wiki_word = get_wiki_random_word()
             fallback_patterns = [
@@ -118,7 +156,7 @@ def generate_text(user_msg=""):
             ]
             return random.choice(yandere_patterns)
 
-        # 4. 特定の地雷ワードに対する「完全発狂モード」（確率50%）
+        # 4. 発狂モード（50%）
         rage_trigger_words = ["初音ミク", "GUMI", "テト", "ボカロ", "ミク"]
         if any(w in user_msg for w in rage_trigger_words) and random.random() < 0.5:
             rage_patterns = [
@@ -135,7 +173,7 @@ def generate_text(user_msg=""):
             ]
             return random.choice(rage_patterns)
 
-        # 5. 伝説の「ズモ」構文（5%）
+        # 5. ズモ構文（5%）
         if random.random() < 0.05:
             zumo_variants = [
                 "ズ'EEEEEEEEEE(º `)EEEEEEEEEEE",
@@ -147,53 +185,26 @@ def generate_text(user_msg=""):
             ]
             return random.choice(zumo_variants)
 
-        # 6. 通常のマルコフ連鎖（ファイルがあれば高速生成・勝手な語尾なし）
-        if os.path.exists('tweets_data.txt'):
-            with open('tweets_data.txt', 'r', encoding='utf-8') as f:
-                lines = [line.strip() for line in f.readlines() if line.strip()]
+        # 6. メモリ上のマルコフ連鎖モデルから超高速生成
+        if MARKOV_MODEL:
+            current_w = random.choice(list(MARKOV_MODEL.keys()))
+            generated_words = [current_w]
             
-            if lines:
-                tagger = MeCab.Tagger(unidic_lite.DICDIR)
-                model = {}
-                
-                for line in lines:
-                    parsed = tagger.parse(line)
-                    words = []
-                    for row in parsed.split('\n'):
-                        if row == 'EOS' or row == '':
-                            continue
-                        cols = row.split('\t')
-                        if len(cols) > 0:
-                            words.append(cols[0])
-                    
-                    if len(words) < 2:
-                        continue
-                    
-                    for i in range(len(words) - 1):
-                        w1, w2 = words[i], words[i+1]
-                        if w1 not in model:
-                            model[w1] = []
-                        model[w1].append(w2)
-                
-                if model:
-                    current_w = random.choice(list(model.keys()))
-                    generated_words = [current_w]
-                    
-                    length = random.randint(3, 8)
-                    for _ in range(length):
-                        if current_w in model:
-                            next_w = random.choice(model[current_w])
-                            generated_words.append(next_w)
-                            current_w = next_w
-                        else:
-                            break
-                    
-                    result_text = "".join(generated_words)
-                    
-                    if len(result_text) > 2:
-                        return result_text
-
-                return random.choice(lines)
+            length = random.randint(3, 8)
+            for _ in range(length):
+                if current_w in MARKOV_MODEL:
+                    next_w = random.choice(MARKOV_MODEL[current_w])
+                    generated_words.append(next_w)
+                    current_w = next_w
+                else:
+                    break
+            
+            result_text = "".join(generated_words)
+            if len(result_text) > 2:
+                return result_text
+        
+        if MARKOV_LINES:
+            return random.choice(MARKOV_LINES)
                 
         return "ズ'EEEEEEEEEE(º `)EEEEEEEEEEE"
         
@@ -220,28 +231,19 @@ def callback():
 # --- 共通のキーワード判定＆返信処理 ---
 def process_and_reply(event, user_msg):
     keywords = [
-       # 足立レイ関連
         "足立レイ", "足立", "レイ", "あだちれい", "アダチレイ", "足立でい", "足立例", "足立霊",
-        
-        # ネタ・システム・好物関連
         "からあげ", "唐揚げ", "から揚げ", "カラアゲ", "空揚げ", 
         "ズモ", "ずも", "ズモモ", "いつも", "すもも", 
         "生殖器", "言うじゃん", "音声合成", "合成音声",
-        
-        # Grok関連
+        "電池", "充電", "ペール缶", "機械", "ロボット", "アップデート", "天才", "かわいい",
         "@grok", "grok", "Grok", "アットグロック", "グロック", "ぐろっく", "黒く", "ブロック",
-        
-        # ボカロ・音声合成キャラ（表記揺れ・ひらがな・聞き間違いを含む）
         "初音ミク", "初音みく", "初音美玖", "はつねみく", "ハツネミク", "初値ミク", "ミク",
         "重音テト", "重音てと", "重ね音テト", "重ねてと", "かさねてと", "じゅうおんてと", "テト", "てと",
         "GUMI", "グミ", "ぐみ",
         "結月ゆかり", "結月縁", "結月由香里", "ゆづきゆかり", "ユヅキユカリ", "ゆかり",
-        "重音テト", "テト", "てと", "重ねてと", "かさねてと",
         "東北ずん子", "東北純子", "とうほくずんこ", "ずんだもん", "ずんこ", "ズンダモン",
         "可不", "カフ", "かふ", "果不",
         "星界", "v_flower", "IA", "紲星あかり", "あかり", "ナースロボ", "小春六花", "夏色花梨", "花隈千冬", "知声", "ちせい",
-        "電池", "充電", "ペール缶", "機械", "ロボット", "アップデート", "天才", "かわいい","銃", "破壊", "爆発",
-        # 記号・カラーコード群
         "@", 
         "#FF6600", "#FF7F00", "#FFFFFF", "#333333", "#4D4D4D", "#FFCC00", "#FF9900",
         "FF6600", "FF7F00", "FFFFFF", "333333", "4D4D4D", "FFCC00", "FF9900", "#FF5500"
@@ -278,7 +280,7 @@ def handle_audio_message(event):
         with open(audio_path, "wb") as f:
             f.write(audio_stream)
                 
-    # 2. GroqのWhisper APIで文字起こし（プロンプト適用済み）
+    # 2. GroqのWhisper APIで文字起こし
     user_msg = transcribe_audio(audio_path)
     print(f"音声文字起こし結果: {user_msg}")
     
@@ -286,7 +288,7 @@ def handle_audio_message(event):
     if os.path.exists(audio_path):
         os.remove(audio_path)
         
-    # 3. 通常通りキーワードにヒットしたときだけ反応する処理へ
+    # 3. キーワードにヒットしたときだけ反応
     if user_msg:
         process_and_reply(event, user_msg)
 
@@ -325,6 +327,9 @@ def run_schedule():
 
 # --- サーバー起動 ---
 if __name__ == "__main__":
+    # 起動時にマルコフ連鎖モデルを一度だけ作成（軽量化の要）
+    init_markov_model()
+    
     t = threading.Thread(target=run_schedule)
     t.daemon = True
     t.start()
